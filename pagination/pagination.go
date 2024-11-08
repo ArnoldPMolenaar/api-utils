@@ -30,7 +30,6 @@ func Query(args *fasthttp.Args, allowedColumns map[string]bool) func(*gorm.DB) *
 		db = parseSearchEqOr(args.Peek("searchEqOr"), db, allowedColumns)
 		db = parseSearchIn(args.Peek("searchIn"), db, allowedColumns)
 		db = parseSearchBetween(args.Peek("searchBetween"), db, allowedColumns)
-		db = parseSortBy(args.Peek("sortBy"), db, allowedColumns)
 
 		return db
 	}
