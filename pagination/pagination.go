@@ -36,6 +36,17 @@ func Query(args *fasthttp.Args, allowedColumns map[string]bool) func(*gorm.DB) *
 	}
 }
 
+// Sort builds a sort query with the provided values
+// and checks the input columns against the allowedColumns list.
+// Returns a gorm query to be used in the function or an error.
+func Sort(args *fasthttp.Args, allowedColumns map[string]bool) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		db = parseSortBy(args.Peek("sortBy"), db, allowedColumns)
+
+		return db
+	}
+}
+
 // Count calculates the page count with the given resultCount of a pagination query and a page limit.
 func Count(resultCount, limit int) int {
 	return int(math.Ceil(float64(resultCount) / float64(limit)))
