@@ -2,7 +2,7 @@ package utils
 
 import (
 	"errors"
-	"github.com/ArnoldPMolenaar/api-utils/errutil"
+	errorsutil "github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -23,10 +23,10 @@ func ErrorHandler(c *fiber.Ctx, err error) error {
 	}
 
 	// Return the error response as JSON.
-	return errutil.Response(
+	return errorsutil.Response(
 		c,
 		code,
-		errutil.InternalServerError,
+		errorsutil.InternalServerError,
 		message,
 	)
 }

@@ -1,4 +1,4 @@
-package errutil
+package errors
 
 // Define error codes as constants.
 const (

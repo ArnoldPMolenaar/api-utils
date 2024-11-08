@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/ArnoldPMolenaar/api-utils/errutil"
+	"github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"os"
@@ -20,10 +20,10 @@ func MachineProtected() func(*fiber.Ctx) error {
 
 		headerKey := c.Get("x-machine-key")
 		if headerKey == "" || headerKey != machineKey {
-			return errutil.Response(
+			return errors.Response(
 				c,
 				fiber.StatusUnauthorized,
-				errutil.Unauthorized,
+				errors.Unauthorized,
 				"Machine key is invalid.",
 			)
 		}

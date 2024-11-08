@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"github.com/ArnoldPMolenaar/api-utils/errutil"
+	"github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -11,10 +11,10 @@ func NotFoundRoute(a *fiber.App) {
 	a.Use(
 		func(c *fiber.Ctx) error {
 			// Return HTTP 404 status and JSON response.
-			return errutil.Response(
+			return errors.Response(
 				c,
 				fiber.StatusNotFound,
-				errutil.NotFound,
+				errors.NotFound,
 				"sorry, endpoint is not found",
 			)
 		},
