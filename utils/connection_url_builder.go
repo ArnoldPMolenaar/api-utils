@@ -23,12 +23,12 @@ func ConnectionURLBuilder(n string) (string, error) {
 			os.Getenv("DB_NAME"),
 			os.Getenv("DB_SSL_MODE"),
 		)
-	case "redis":
-		// URL for Redis connection.
+	case "valkey":
+		// URL for valkey connection.
 		url = fmt.Sprintf(
 			"%s:%s",
-			os.Getenv("REDIS_HOST"),
-			os.Getenv("REDIS_PORT"),
+			os.Getenv("VALKEY_HOST"),
+			os.Getenv("VALKEY_PORT"),
 		)
 	case "fiber":
 		// URL for Fiber connection.
