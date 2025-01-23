@@ -73,7 +73,7 @@ func parseSearchLike(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("%s ILIKE ?", key), fmt.Sprintf("%%%s%%", value))
+		db = db.Where(fmt.Sprintf("\"%s\" ILIKE ?", key), fmt.Sprintf("%%%s%%", value))
 	}
 
 	return db
@@ -85,7 +85,7 @@ func parseSearchEq(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("%s = ?", key), value)
+		db = db.Where(fmt.Sprintf("\"%s\" = ?", key), value)
 	}
 
 	return db
@@ -99,7 +99,7 @@ func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]boo
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("%s ILIKE ?", key))
+		conditions = append(conditions, fmt.Sprintf("\"%s\" ILIKE ?", key))
 		values = append(values, fmt.Sprintf("%%%s%%", value))
 	}
 
@@ -118,7 +118,7 @@ func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("%s = ?", key))
+		conditions = append(conditions, fmt.Sprintf("\"%s\" = ?", key))
 		values = append(values, value)
 	}
 
@@ -134,7 +134,7 @@ func parseSearchIn(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	paramMap := parseMultiValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("%s IN (?)", key), value)
+		db = db.Where(fmt.Sprintf("\"%s\" IN (?)", key), value)
 	}
 
 	return db
@@ -157,7 +157,7 @@ func parseSearchBetween(params []byte, db *gorm.DB, allowedColumns map[string]bo
 			_ = db.AddError(errors.New("invalid date-time format"))
 		}
 
-		db = db.Where(fmt.Sprintf("%s BETWEEN ? AND ?", key), startTime, endTime)
+		db = db.Where(fmt.Sprintf("\"%s\" BETWEEN ? AND ?", key), startTime, endTime)
 	}
 
 	return db
@@ -170,9 +170,9 @@ func parseSortBy(params []byte, db *gorm.DB, allowedColumns map[string]bool) *go
 	for key, value := range paramMap {
 		switch value {
 		case "desc":
-			db = db.Order(fmt.Sprintf("%s DESC", key))
+			db = db.Order(fmt.Sprintf("\"%s\" DESC", key))
 		case "asc":
-			db = db.Order(fmt.Sprintf("%s ASC", key))
+			db = db.Order(fmt.Sprintf("\"%s\" ASC", key))
 		default:
 			_ = db.AddError(errors.New("order not asc or desc"))
 		}
