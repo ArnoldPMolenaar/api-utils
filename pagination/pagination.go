@@ -67,8 +67,8 @@ func CreatePaginationModel(limit, page, pageCount, total int, result interface{}
 	}
 }
 
-// search_like: for |where ... LIKE ... AND| query = search_like=column:value,column:value =>
-// search_like=firstname:john,lastname:doe
+// searchLike: for |where ... LIKE ... AND| query = searchLike=column:value,column:value =>
+// searchLike=firstname:john,lastname:doe
 func parseSearchLike(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
@@ -79,8 +79,8 @@ func parseSearchLike(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	return db
 }
 
-// search_eq: for |where ... = ... AND| query = search_eq=column:value,column:value =>
-// search_eq=firstname:john,lastname:doe
+// searchEq: for |where ... = ... AND| query = searchEq=column:value,column:value =>
+// searchEq=firstname:john,lastname:doe
 func parseSearchEq(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
@@ -91,8 +91,8 @@ func parseSearchEq(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	return db
 }
 
-// search_like_or: for |where ... like ... OR| query = search_like_or=column:value,column:value =>
-// search_or_like=firstname:john,lastname:doe
+// searchLikeOr: for |where ... like ... OR| query = searchLikeOr=column:value,column:value =>
+// searchLikeOr=firstname:john,lastname:doe
 func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	var conditions []string
 	var values []interface{}
@@ -110,8 +110,8 @@ func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]boo
 	return db
 }
 
-// search_eq_or: for |where ... = ... OR| query = search_eq_or=column:value,column:value =>
-// search_or_eq=firstname:john,lastname:doe
+// searchEqOr: for |where ... = ... OR| query = searchEqOr=column:value,column:value =>
+// searchEqOr=firstname:john,lastname:doe
 func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	var conditions []string
 	var values []interface{}
@@ -129,7 +129,7 @@ func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	return db
 }
 
-// search_in: for |where IN| query = search_in=column:value.value.value => search_in=is_online:true.false
+// searchIn: for |where IN| query = searchIn=column:value;value;value => searchIn=is_online:true;false
 func parseSearchIn(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseMultiValueParams(db, string(params), allowedColumns)
 
@@ -140,8 +140,8 @@ func parseSearchIn(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	return db
 }
 
-// search_between  for |where ... between ... AND ...| query = search_between=column:value1.value2 =>
-// search_between=created_at:2020-08-03.2020-09-03
+// searchBetween: for |where ... between ... AND ...| query = searchBetween=column:value1;value2 =>
+// searchBetween=created_at:2020-08-03;2020-09-03
 func parseSearchBetween(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseMultiValueParams(db, string(params), allowedColumns)
 
@@ -163,7 +163,7 @@ func parseSearchBetween(params []byte, db *gorm.DB, allowedColumns map[string]bo
 	return db
 }
 
-// sort_by: for |ORDER BY| query = sort_by=column:value,column:value => sort_by=firstname:asc,lastname:desc
+// sortBy: for |ORDER BY| query = sortBy=column:value,column:value => sortBy=firstname:asc,lastname:desc
 func parseSortBy(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
