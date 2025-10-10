@@ -3,11 +3,12 @@ package pagination
 import (
 	"errors"
 	"fmt"
-	"github.com/valyala/fasthttp"
-	"gorm.io/gorm"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/valyala/fasthttp"
+	"gorm.io/gorm"
 )
 
 // Model struct is used to return paginated data.
@@ -73,7 +74,7 @@ func parseSearchLike(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("\"%s\" ILIKE ?", key), fmt.Sprintf("%%%s%%", value))
+		db = db.Where(fmt.Sprintf("CAST(\"%s\" AS TEXT) ILIKE ?", key), fmt.Sprintf("%%%s%%", value))
 	}
 
 	return db
@@ -85,7 +86,7 @@ func parseSearchEq(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("\"%s\" = ?", key), value)
+		db = db.Where(fmt.Sprintf("CAST(\"%s\" AS TEXT) = ?", key), value)
 	}
 
 	return db
@@ -99,7 +100,7 @@ func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]boo
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("\"%s\" ILIKE ?", key))
+		conditions = append(conditions, fmt.Sprintf("CAST(\"%s\" AS TEXT) ILIKE ?", key))
 		values = append(values, fmt.Sprintf("%%%s%%", value))
 	}
 
@@ -118,7 +119,7 @@ func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("\"%s\" = ?", key))
+		conditions = append(conditions, fmt.Sprintf("CAST(\"%s\" AS TEXT) = ?", key))
 		values = append(values, value)
 	}
 
@@ -134,7 +135,7 @@ func parseSearchIn(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	paramMap := parseMultiValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("\"%s\" IN (?)", key), value)
+		db = db.Where(fmt.Sprintf("CAST(\"%s\" AS TEXT) IN (?)", key), value)
 	}
 
 	return db
