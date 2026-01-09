@@ -229,18 +229,28 @@ func parseSingleValueParams(db *gorm.DB, params string, allowedColumns map[strin
 		paramSearchParts := strings.Split(params, ",")
 		for _, paramSearchPart := range paramSearchParts {
 			valuePairs := strings.Split(paramSearchPart, ":")
-			canParse := len(valuePairs) == 2 && valuePairs[0] != "" && valuePairs[1] != ""
-			isAllowed := allowedColumns[valuePairs[0]]
-
-			if !canParse {
+			// malformed when not exactly 2 parts or key empty
+			malformed := len(valuePairs) != 2 || valuePairs[0] == ""
+			if malformed {
 				_ = db.AddError(errors.New("cannot parse invalid format"))
+				continue
 			}
+
+			key := valuePairs[0]
+			val := valuePairs[1]
+
+			// skip silently if value is empty (no error, just ignore this pair)
+			if val == "" {
+				continue
+			}
+
+			isAllowed := allowedColumns[key]
 			if !isAllowed {
 				_ = db.AddError(errors.New("column not allowed"))
+				continue
 			}
-			if isAllowed && canParse {
-				paramMap[valuePairs[0]] = valuePairs[1]
-			}
+
+			paramMap[key] = val
 		}
 	}
 
@@ -256,18 +266,28 @@ func parseMultiValueParams(db *gorm.DB, params string, allowedColumns map[string
 		paramSearchParts := strings.Split(params, ",")
 		for _, paramSearchPart := range paramSearchParts {
 			valuePairs := strings.SplitN(paramSearchPart, ":", 2)
-			canParse := len(valuePairs) == 2 && valuePairs[0] != "" && valuePairs[1] != ""
-			isAllowed := allowedColumns[valuePairs[0]]
-
-			if !canParse {
+			// malformed when not exactly 2 parts or key empty
+			malformed := len(valuePairs) != 2 || valuePairs[0] == ""
+			if malformed {
 				_ = db.AddError(errors.New("cannot parse invalid format"))
+				continue
 			}
+
+			key := valuePairs[0]
+			val := valuePairs[1]
+
+			// skip silently if value part is empty (no values)
+			if val == "" {
+				continue
+			}
+
+			isAllowed := allowedColumns[key]
 			if !isAllowed {
 				_ = db.AddError(errors.New("column not allowed"))
+				continue
 			}
-			if isAllowed && canParse {
-				paramMap[valuePairs[0]] = strings.Split(valuePairs[1], ";")
-			}
+
+			paramMap[key] = strings.Split(val, ";")
 		}
 	}
 
