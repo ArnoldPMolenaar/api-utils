@@ -27,8 +27,8 @@ func Query(args *fasthttp.Args, allowedColumns map[string]bool) func(*gorm.DB) *
 	return func(db *gorm.DB) *gorm.DB {
 		db = parseSearchLike(args.Peek("searchLike"), db, allowedColumns)
 		db = parseSearchEq(args.Peek("searchEq"), db, allowedColumns)
-		db = parseSearchLikeOr(args.Peek("searchLikeOr"), db, allowedColumns)
-		db = parseSearchEqOr(args.Peek("searchEqOr"), db, allowedColumns)
+		// Combine the OR groups (EqOr and LikeOr) into a single OR clause that is AND-ed with other filters
+		db = parseOr(args.Peek("searchEqOr"), args.Peek("searchLikeOr"), db, allowedColumns)
 		db = parseSearchIn(args.Peek("searchIn"), db, allowedColumns)
 		db = parseSearchBetween(args.Peek("searchBetween"), db, allowedColumns)
 
@@ -94,43 +94,29 @@ func parseSearchEq(params []byte, db *gorm.DB, allowedColumns map[string]bool) *
 	return db
 }
 
-// parseSearchLikeOr Adds LIKE conditions with OR to the GORM DB query
-// searchLikeOr: for |where ... like ... OR| query = searchLikeOr=column:value,column:value =>
-// searchLikeOr=firstname:john,lastname:doe
-func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
+// parseOr merges searchEqOr and searchLikeOr into a single OR group that is AND-ed with other filters.
+// Example: searchEqOr=a:1,b:2 and searchLikeOr=c:x => WHERE (... AND (... OR ... OR ...))
+func parseOr(eqParams []byte, likeParams []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	var conditions []string
 	var values []interface{}
-	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
-	for key, value := range paramMap {
+	// Equal OR part
+	eqMap := parseSingleValueParams(db, string(eqParams), allowedColumns)
+	for key, value := range eqMap {
+		conditions = append(conditions, fmt.Sprintf("CAST(%s AS TEXT) = ?", parseColumn(key)))
+		values = append(values, value)
+	}
+
+	// LIKE OR part
+	likeMap := parseSingleValueParams(db, string(likeParams), allowedColumns)
+	for key, value := range likeMap {
 		conditions = append(conditions, fmt.Sprintf("CAST(%s AS TEXT) ILIKE ?", parseColumn(key)))
 		values = append(values, fmt.Sprintf("%%%s%%", value))
 	}
 
 	if len(conditions) > 0 {
 		group := "(" + strings.Join(conditions, " OR ") + ")"
-		db = db.Or(group, values...)
-	}
-
-	return db
-}
-
-// parseSearchEqOr Adds equality conditions with OR to the GORM DB query
-// searchEqOr: for |where ... = ... OR| query = searchEqOr=column:value,column:value =>
-// searchEqOr=firstname:john,lastname:doe
-func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
-	var conditions []string
-	var values []interface{}
-	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
-
-	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("CAST(%s AS TEXT) = ?", parseColumn(key)))
-		values = append(values, value)
-	}
-
-	if len(conditions) > 0 {
-		group := "(" + strings.Join(conditions, " OR ") + ")"
-		db = db.Or(group, values...)
+		db = db.Where(group, values...)
 	}
 
 	return db
