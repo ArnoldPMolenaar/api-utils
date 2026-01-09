@@ -108,7 +108,8 @@ func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]boo
 	}
 
 	if len(conditions) > 0 {
-		db = db.Where(strings.Join(conditions, " OR "), values...)
+		group := "(" + strings.Join(conditions, " OR ") + ")"
+		db = db.Or(group, values...)
 	}
 
 	return db
@@ -128,7 +129,8 @@ func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	}
 
 	if len(conditions) > 0 {
-		db = db.Where(strings.Join(conditions, " OR "), values...)
+		group := "(" + strings.Join(conditions, " OR ") + ")"
+		db = db.Or(group, values...)
 	}
 
 	return db
