@@ -68,30 +68,33 @@ func CreatePaginationModel(limit, page, pageCount, total int, result interface{}
 	}
 }
 
+// parseSearchLike Adds LIKE conditions to the GORM DB query
 // searchLike: for |where ... LIKE ... AND| query = searchLike=column:value,column:value =>
 // searchLike=firstname:john,lastname:doe
 func parseSearchLike(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("CAST(\"%s\" AS TEXT) ILIKE ?", key), fmt.Sprintf("%%%s%%", value))
+		db = db.Where(fmt.Sprintf("CAST(%s AS TEXT) ILIKE ?", parseColumn(key)), fmt.Sprintf("%%%s%%", value))
 	}
 
 	return db
 }
 
+// parseSearchEq Adds equality conditions to the GORM DB query
 // searchEq: for |where ... = ... AND| query = searchEq=column:value,column:value =>
 // searchEq=firstname:john,lastname:doe
 func parseSearchEq(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("CAST(\"%s\" AS TEXT) = ?", key), value)
+		db = db.Where(fmt.Sprintf("CAST(%s AS TEXT) = ?", parseColumn(key)), value)
 	}
 
 	return db
 }
 
+// parseSearchLikeOr Adds LIKE conditions with OR to the GORM DB query
 // searchLikeOr: for |where ... like ... OR| query = searchLikeOr=column:value,column:value =>
 // searchLikeOr=firstname:john,lastname:doe
 func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
@@ -100,7 +103,7 @@ func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]boo
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("CAST(\"%s\" AS TEXT) ILIKE ?", key))
+		conditions = append(conditions, fmt.Sprintf("CAST(%s AS TEXT) ILIKE ?", parseColumn(key)))
 		values = append(values, fmt.Sprintf("%%%s%%", value))
 	}
 
@@ -111,6 +114,7 @@ func parseSearchLikeOr(params []byte, db *gorm.DB, allowedColumns map[string]boo
 	return db
 }
 
+// parseSearchEqOr Adds equality conditions with OR to the GORM DB query
 // searchEqOr: for |where ... = ... OR| query = searchEqOr=column:value,column:value =>
 // searchEqOr=firstname:john,lastname:doe
 func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
@@ -119,7 +123,7 @@ func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		conditions = append(conditions, fmt.Sprintf("CAST(\"%s\" AS TEXT) = ?", key))
+		conditions = append(conditions, fmt.Sprintf("CAST(%s AS TEXT) = ?", parseColumn(key)))
 		values = append(values, value)
 	}
 
@@ -130,17 +134,19 @@ func parseSearchEqOr(params []byte, db *gorm.DB, allowedColumns map[string]bool)
 	return db
 }
 
+// parseSearchIn Adds IN conditions to the GORM DB query
 // searchIn: for |where IN| query = searchIn=column:value;value;value => searchIn=is_online:true;false
 func parseSearchIn(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseMultiValueParams(db, string(params), allowedColumns)
 
 	for key, value := range paramMap {
-		db = db.Where(fmt.Sprintf("CAST(\"%s\" AS TEXT) IN (?)", key), value)
+		db = db.Where(fmt.Sprintf("CAST(%s AS TEXT) IN (?)", parseColumn(key)), value)
 	}
 
 	return db
 }
 
+// parseSearchBetween Adds BETWEEN conditions to the GORM DB query
 // searchBetween: for |where ... between ... AND ...| query = searchBetween=column:value1;value2 =>
 // searchBetween=created_at:2020-08-03;2020-09-03
 func parseSearchBetween(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
@@ -158,12 +164,13 @@ func parseSearchBetween(params []byte, db *gorm.DB, allowedColumns map[string]bo
 			_ = db.AddError(errors.New("invalid date-time format"))
 		}
 
-		db = db.Where(fmt.Sprintf("\"%s\" BETWEEN ? AND ?", key), startTime, endTime)
+		db = db.Where(fmt.Sprintf("%s BETWEEN ? AND ?", parseColumn(key)), startTime, endTime)
 	}
 
 	return db
 }
 
+// parseSortBy Adds ORDER BY conditions to the GORM DB query
 // sortBy: for |ORDER BY| query = sortBy=column:value,column:value => sortBy=firstname:asc,lastname:desc
 func parseSortBy(params []byte, db *gorm.DB, allowedColumns map[string]bool) *gorm.DB {
 	paramMap := parseSingleValueParams(db, string(params), allowedColumns)
@@ -171,15 +178,46 @@ func parseSortBy(params []byte, db *gorm.DB, allowedColumns map[string]bool) *go
 	for key, value := range paramMap {
 		switch value {
 		case "desc":
-			db = db.Order(fmt.Sprintf("\"%s\" DESC", key))
+			db = db.Order(fmt.Sprintf("%s DESC", parseColumn(key)))
 		case "asc":
-			db = db.Order(fmt.Sprintf("\"%s\" ASC", key))
+			db = db.Order(fmt.Sprintf("%s ASC", parseColumn(key)))
 		default:
 			_ = db.AddError(errors.New("order not asc or desc"))
 		}
 	}
 
 	return db
+}
+
+// parseColumn quotes SQL identifiers correctly for GORM/SQL.
+// It splits the input on dots and wraps each non-empty part with double quotes,
+// so:
+//   - "table.column" => "table"."column"
+//   - "schema.table.column" => "schema"."table"."column"
+//
+// The function trims whitespace and strips any existing double quotes first to
+// avoid double-quoting, then re-quotes consistently. Empty parts (e.g., due to
+// leading/trailing/double dots) are converted to "" to preserve structure,
+// allowing upstream validation to fail fast if inputs are malformed.
+func parseColumn(column string) string {
+	// Normalize: trim spaces and remove existing quotes to avoid double-quoting or malformed input
+	cleaned := strings.TrimSpace(column)
+	if cleaned == "" {
+		return "\"\""
+	}
+	cleaned = strings.ReplaceAll(cleaned, "\"", "")
+
+	parts := strings.Split(cleaned, ".")
+	for i, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			// Preserve position to keep dot structure, although it will likely lead to a SQL error upstream
+			parts[i] = "\"\""
+			continue
+		}
+		parts[i] = fmt.Sprintf("\"%s\"", p)
+	}
+	return strings.Join(parts, ".")
 }
 
 // parseSingleValueParams parses the query string for single value params.
