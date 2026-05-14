@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"log"
 	"os"
 	"os/signal"
