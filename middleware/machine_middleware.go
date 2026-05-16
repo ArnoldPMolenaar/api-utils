@@ -1,10 +1,11 @@
 package middleware
 
 import (
+	"os"
+
 	"github.com/ArnoldPMolenaar/api-utils/errors"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
-	"os"
 )
 
 // MachineProtected middleware checks if the machine key is valid.
@@ -15,7 +16,13 @@ func MachineProtected() func(fiber.Ctx) error {
 	return func(c fiber.Ctx) error {
 		machineKey := os.Getenv("MACHINE_KEY")
 		if machineKey == "" {
-			log.Fatal("MACHINE_KEY is not configured in the .env file")
+			log.Error("MACHINE_KEY is not configured in the .env file")
+			return errors.Response(
+				c,
+				fiber.StatusInternalServerError,
+				errors.InternalServerError,
+				"Machine key is not configured.",
+			)
 		}
 
 		headerKey := c.Get("x-machine-key")

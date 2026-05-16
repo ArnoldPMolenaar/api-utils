@@ -15,10 +15,8 @@ func NewValidator() *validator.Validate {
 	// Custom validation for uuid.UUID fields.
 	_ = validate.RegisterValidation("uuid", func(fl validator.FieldLevel) bool {
 		field := fl.Field().String()
-		if _, err := uuid.Parse(field); err != nil {
-			return true
-		}
-		return false
+		_, err := uuid.Parse(field)
+		return err == nil
 	})
 
 	return validate
@@ -28,9 +26,17 @@ func NewValidator() *validator.Validate {
 func ValidatorErrors(err error) map[string]string {
 	// Define fields map.
 	fields := map[string]string{}
+	if err == nil {
+		return fields
+	}
+
+	validationErrors, ok := err.(validator.ValidationErrors)
+	if !ok {
+		return fields
+	}
 
 	// Make error message for each invalid field.
-	for _, err := range err.(validator.ValidationErrors) {
+	for _, err := range validationErrors {
 		fields[err.Field()] = err.Error()
 	}
 

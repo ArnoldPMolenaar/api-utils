@@ -1,10 +1,16 @@
 package cache
 
 import (
-	"github.com/ArnoldPMolenaar/api-utils/utils"
-	"github.com/valkey-io/valkey-go"
 	"os"
 	"strconv"
+
+	"github.com/ArnoldPMolenaar/api-utils/utils"
+	"github.com/valkey-io/valkey-go"
+)
+
+var (
+	connectionURLBuilderFn = utils.ConnectionURLBuilder
+	newClientFn            = valkey.NewClient
 )
 
 // ValkeyConnection func for connect to Valkey server.
@@ -13,7 +19,7 @@ func ValkeyConnection() (valkey.Client, error) {
 	dbNumber, _ := strconv.Atoi(os.Getenv("VALKEY_DB_NUMBER"))
 
 	// Build Valkey URL.
-	valkeyURL, err := utils.ConnectionURLBuilder("valkey")
+	valkeyURL, err := connectionURLBuilderFn("valkey")
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +34,9 @@ func ValkeyConnection() (valkey.Client, error) {
 		Password:          os.Getenv("VALKEY_PASSWORD"),
 	}
 
-	client, err := valkey.NewClient(options)
+	client, err := newClientFn(options)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return client, nil
