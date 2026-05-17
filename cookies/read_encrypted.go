@@ -1,18 +1,21 @@
 package cookies
 
 import (
-	"github.com/ArnoldPMolenaar/api-utils/utils"
 	"github.com/gofiber/fiber/v3"
 
 	"strings"
 )
 
-// ReadEncrypted reads an encrypted cookie value from the request and
-// decrypts it using the provided secret key. The cookie name is also
-// included in the encryption, so that the cookie value cannot be used for
-// other cookies. If the cookie name has been changed, or if the
-// decryption fails, an ErrInvalidValue error is returned.
-func ReadEncrypted(c fiber.Ctx, name, secretKey string) (string, error) {
+// ReadEncrypted reads an encrypted cookie value from the request and decrypts
+// it using the secret key from config. The cookie name is authenticated in the
+// encrypted payload so values cannot be replayed across different cookie names.
+// If decryption fails or the authenticated name does not match, it returns
+// ErrInvalidValue.
+func ReadEncrypted(c fiber.Ctx, name string, cfg EncryptedConfig, deps CryptoDeps) (string, error) {
+	if err := deps.validateDecrypt(); err != nil {
+		return "", err
+	}
+
 	// Read the encrypted value from the cookie as normal.
 	encryptedValue, err := Read(c, name)
 	if err != nil {
@@ -24,7 +27,7 @@ func ReadEncrypted(c fiber.Ctx, name, secretKey string) (string, error) {
 
 	// Use aesGCM.Open() to decrypt and authenticate the data. If this fails,
 	// return a ErrInvalidValue error.
-	plaintext, err := utils.Decrypt(secretKey, encryptedValue)
+	plaintext, err := deps.Decrypt(cfg.SecretKey, encryptedValue)
 	if err != nil {
 		return "", ErrInvalidValue
 	}

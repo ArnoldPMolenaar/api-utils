@@ -17,7 +17,7 @@ func TestWriteEncodesCookieValue(t *testing.T) {
 			Name:  "session",
 			Value: "plain-value",
 			Path:  "/",
-		})
+		}, DefaultWriteConfig())
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/set", nil)
@@ -44,7 +44,7 @@ func TestWriteReturnsErrValueTooLong(t *testing.T) {
 			Name:  "session",
 			Value: strings.Repeat("a", 5000),
 			Path:  "/",
-		})
+		}, DefaultWriteConfig())
 		if err == ErrValueTooLong {
 			return c.SendStatus(http.StatusRequestEntityTooLarge)
 		}
@@ -107,7 +107,7 @@ func TestWriteBoundaryAtSerializedCookieLimit(t *testing.T) {
 			Secure:   true,
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
-		})
+		}, DefaultWriteConfig())
 	})
 	app.Get("/overflow", func(c fiber.Ctx) error {
 		err := Write(c, &fiber.Cookie{
@@ -117,7 +117,7 @@ func TestWriteBoundaryAtSerializedCookieLimit(t *testing.T) {
 			Secure:   true,
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
-		})
+		}, DefaultWriteConfig())
 		if err == ErrValueTooLong {
 			return c.SendStatus(http.StatusRequestEntityTooLarge)
 		}

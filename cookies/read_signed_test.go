@@ -19,7 +19,7 @@ var (
 func TestReadSignedReturnsEmptyWhenCookieMissing(t *testing.T) {
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		value, err := ReadSigned(c, "session", signedKeyA)
+		value, err := ReadSigned(c, "session", SignedConfig{SecretKey: signedKeyA})
 		if err != nil {
 			return err
 		}
@@ -40,7 +40,7 @@ func TestReadSignedReturnsEmptyWhenCookieMissing(t *testing.T) {
 func TestReadSignedReturnsErrInvalidValueWhenSignatureTooShort(t *testing.T) {
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		_, err := ReadSigned(c, "session", signedKeyA)
+		_, err := ReadSigned(c, "session", SignedConfig{SecretKey: signedKeyA})
 		if err == ErrInvalidValue {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}
@@ -66,7 +66,7 @@ func TestReadSignedReturnsErrInvalidValueWhenSignatureTooShort(t *testing.T) {
 func TestReadSignedReturnsErrInvalidValueWhenSignatureMismatch(t *testing.T) {
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		_, err := ReadSigned(c, "session", signedKeyA)
+		_, err := ReadSigned(c, "session", SignedConfig{SecretKey: signedKeyA})
 		if err == ErrInvalidValue {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}
@@ -97,10 +97,10 @@ func TestWriteSignedAndReadSignedRoundTrip(t *testing.T) {
 			Name:  "session",
 			Value: "payload",
 			Path:  "/",
-		}, signedKeyA)
+		}, SignedConfig{SecretKey: signedKeyA, Write: DefaultWriteConfig()})
 	})
 	app.Get("/get", func(c fiber.Ctx) error {
-		value, err := ReadSigned(c, "session", signedKeyA)
+		value, err := ReadSigned(c, "session", SignedConfig{SecretKey: signedKeyA})
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func TestReadSignedFailsWithDifferentSecret(t *testing.T) {
 
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		_, err := ReadSigned(c, "session", signedKeyB)
+		_, err := ReadSigned(c, "session", SignedConfig{SecretKey: signedKeyB})
 		if err == ErrInvalidValue {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}

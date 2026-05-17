@@ -88,28 +88,22 @@ func TestErrorHandler(t *testing.T) {
 }
 
 func TestStartServer(t *testing.T) {
-	origBuilder := connectionURLBuilderFn
-	origListen := listenFn
-	defer func() {
-		connectionURLBuilderFn = origBuilder
-		listenFn = origListen
-	}()
-
 	called := false
 	var gotAddr string
-	connectionURLBuilderFn = func(name string) (string, error) {
-		if name != "fiber" {
-			t.Fatalf("expected builder name fiber, got %q", name)
-		}
-		return ":9999", nil
-	}
-	listenFn = func(a *fiber.App, addr string) error {
-		called = true
-		gotAddr = addr
-		return nil
-	}
 
-	StartServer(fiber.New())
+	StartServerWithConfig(
+		fiber.New(),
+		ServerConfig{Address: ":9999"},
+		ServerDeps{
+			Listen: func(a *fiber.App, addr string) error {
+				called = true
+				gotAddr = addr
+				return nil
+			},
+			Shutdown:     func(a *fiber.App) error { return nil },
+			NotifySignal: func(c chan<- os.Signal, sig ...os.Signal) {},
+		},
+	)
 
 	if !called {
 		t.Fatal("expected listen to be called")
@@ -119,62 +113,42 @@ func TestStartServer(t *testing.T) {
 	}
 }
 
-func TestStartServerBuilderError(t *testing.T) {
-	origBuilder := connectionURLBuilderFn
-	origListen := listenFn
-	defer func() {
-		connectionURLBuilderFn = origBuilder
-		listenFn = origListen
-	}()
+func TestServerConfigFromEnv(t *testing.T) {
+	t.Setenv("SERVER_HOST", "127.0.0.1")
+	t.Setenv("SERVER_PORT", "8080")
 
-	connectionURLBuilderFn = func(name string) (string, error) {
-		return "", errors.New("builder failed")
+	cfg, err := ServerConfigFromEnv()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
 	}
-	listenCalled := false
-	listenFn = func(a *fiber.App, addr string) error {
-		listenCalled = true
-		return nil
-	}
-
-	StartServer(fiber.New())
-
-	if listenCalled {
-		t.Fatal("expected listen not to be called when URL builder fails")
+	if cfg.Address != "127.0.0.1:8080" {
+		t.Fatalf("unexpected address: %q", cfg.Address)
 	}
 }
 
 func TestStartServerWithGracefulShutdown(t *testing.T) {
-	origBuilder := connectionURLBuilderFn
-	origListen := listenFn
-	origShutdown := shutdownFn
-	origNotify := notifySignalFn
-	defer func() {
-		connectionURLBuilderFn = origBuilder
-		listenFn = origListen
-		shutdownFn = origShutdown
-		notifySignalFn = origNotify
-	}()
-
-	connectionURLBuilderFn = func(name string) (string, error) {
-		return ":9999", nil
-	}
 	listenCalled := false
 	shutdownCalled := false
-	listenFn = func(a *fiber.App, addr string) error {
-		listenCalled = true
-		return nil
-	}
-	shutdownFn = func(a *fiber.App) error {
-		shutdownCalled = true
-		return nil
-	}
-	notifySignalFn = func(c chan<- os.Signal, sig ...os.Signal) {
-		go func() {
-			c <- os.Interrupt
-		}()
-	}
 
-	StartServerWithGracefulShutdown(fiber.New())
+	StartServerWithGracefulShutdownConfig(
+		fiber.New(),
+		ServerConfig{Address: ":9999"},
+		ServerDeps{
+			Listen: func(a *fiber.App, addr string) error {
+				listenCalled = true
+				return nil
+			},
+			Shutdown: func(a *fiber.App) error {
+				shutdownCalled = true
+				return nil
+			},
+			NotifySignal: func(c chan<- os.Signal, sig ...os.Signal) {
+				go func() {
+					c <- os.Interrupt
+				}()
+			},
+		},
+	)
 
 	if !listenCalled {
 		t.Fatal("expected listen to be called")
@@ -182,5 +156,45 @@ func TestStartServerWithGracefulShutdown(t *testing.T) {
 	if !shutdownCalled {
 		t.Fatal("expected shutdown to be called")
 	}
+}
+
+func TestStartServerWithInvalidContracts(t *testing.T) {
+	t.Run("invalid config", func(t *testing.T) {
+		called := false
+		StartServerWithConfig(
+			fiber.New(),
+			ServerConfig{},
+			ServerDeps{
+				Listen: func(a *fiber.App, addr string) error {
+					called = true
+					return nil
+				},
+				Shutdown:     func(a *fiber.App) error { return nil },
+				NotifySignal: func(c chan<- os.Signal, sig ...os.Signal) {},
+			},
+		)
+
+		if called {
+			t.Fatal("expected listen not to be called")
+		}
+	})
+
+	t.Run("invalid deps", func(t *testing.T) {
+		called := false
+		StartServerWithConfig(
+			fiber.New(),
+			ServerConfig{Address: ":9999"},
+			ServerDeps{
+				Listen: func(a *fiber.App, addr string) error {
+					called = true
+					return nil
+				},
+			},
+		)
+
+		if called {
+			t.Fatal("expected listen not to be called")
+		}
+	})
 }
 

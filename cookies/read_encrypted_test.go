@@ -15,7 +15,7 @@ const testAESKey = "0123456789abcdef0123456789abcdef"
 func TestReadEncryptedReturnsEmptyWhenCookieMissing(t *testing.T) {
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		value, err := ReadEncrypted(c, "session", testAESKey)
+		value, err := ReadEncrypted(c, "session", EncryptedConfig{SecretKey: testAESKey}, DefaultCryptoDeps())
 		if err != nil {
 			return err
 		}
@@ -36,7 +36,7 @@ func TestReadEncryptedReturnsEmptyWhenCookieMissing(t *testing.T) {
 func TestReadEncryptedReturnsErrInvalidValueOnDecryptFailure(t *testing.T) {
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		_, err := ReadEncrypted(c, "session", testAESKey)
+		_, err := ReadEncrypted(c, "session", EncryptedConfig{SecretKey: testAESKey}, DefaultCryptoDeps())
 		if err == ErrInvalidValue {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}
@@ -67,7 +67,7 @@ func TestReadEncryptedReturnsErrInvalidValueOnMalformedPlaintext(t *testing.T) {
 
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		_, readErr := ReadEncrypted(c, "session", testAESKey)
+		_, readErr := ReadEncrypted(c, "session", EncryptedConfig{SecretKey: testAESKey}, DefaultCryptoDeps())
 		if readErr == ErrInvalidValue {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}
@@ -98,7 +98,7 @@ func TestReadEncryptedReturnsErrInvalidValueOnCookieNameMismatch(t *testing.T) {
 
 	app := fiber.New()
 	app.Get("/get", func(c fiber.Ctx) error {
-		_, readErr := ReadEncrypted(c, "session", testAESKey)
+		_, readErr := ReadEncrypted(c, "session", EncryptedConfig{SecretKey: testAESKey}, DefaultCryptoDeps())
 		if readErr == ErrInvalidValue {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}
@@ -128,10 +128,10 @@ func TestWriteEncryptedAndReadEncryptedRoundTrip(t *testing.T) {
 			Name:  "session",
 			Value: "payload",
 			Path:  "/",
-		}, testAESKey)
+		}, EncryptedConfig{SecretKey: testAESKey, Write: DefaultWriteConfig()}, DefaultCryptoDeps())
 	})
 	app.Get("/get", func(c fiber.Ctx) error {
-		value, err := ReadEncrypted(c, "session", testAESKey)
+		value, err := ReadEncrypted(c, "session", EncryptedConfig{SecretKey: testAESKey}, DefaultCryptoDeps())
 		if err != nil {
 			return err
 		}

@@ -12,13 +12,13 @@ import (
 )
 
 // Write encodes the cookie value using base64 and writes it to the response.
-func Write(c fiber.Ctx, cookie *fiber.Cookie) error {
+func Write(c fiber.Ctx, cookie *fiber.Cookie, cfg WriteConfig) error {
 	// Encode the cookie value using base64.
 	cookie.Value = base64.URLEncoding.EncodeToString([]byte(cookie.Value))
 
 	// Measure the exact serialized Set-Cookie value size, matching Fiber's
 	// cookie normalization/serialization logic.
-	if serializedCookieSize(cookie) > 4096 {
+	if serializedCookieSize(cookie) > cfg.maxSerializedSize() {
 		return ErrValueTooLong
 	}
 

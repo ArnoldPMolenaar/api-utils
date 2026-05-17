@@ -16,7 +16,7 @@ func TestWriteSignedPropagatesErrValueTooLong(t *testing.T) {
 			Name:  "session",
 			Value: strings.Repeat("x", 5000),
 			Path:  "/",
-		}, signedKeyA)
+		}, SignedConfig{SecretKey: signedKeyA, Write: DefaultWriteConfig()})
 		if err == ErrValueTooLong {
 			return c.SendStatus(http.StatusRequestEntityTooLarge)
 		}

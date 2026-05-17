@@ -16,7 +16,7 @@ func TestWriteEncryptedReturnsErrorForInvalidSecretLength(t *testing.T) {
 			Name:  "session",
 			Value: "payload",
 			Path:  "/",
-		}, "short-key")
+		}, EncryptedConfig{SecretKey: "short-key", Write: DefaultWriteConfig()}, DefaultCryptoDeps())
 		if err != nil {
 			return c.SendStatus(http.StatusUnprocessableEntity)
 		}
@@ -41,7 +41,7 @@ func TestWriteEncryptedPropagatesErrValueTooLong(t *testing.T) {
 			Name:  "session",
 			Value: strings.Repeat("x", 5000),
 			Path:  "/",
-		}, testAESKey)
+		}, EncryptedConfig{SecretKey: testAESKey, Write: DefaultWriteConfig()}, DefaultCryptoDeps())
 		if err == ErrValueTooLong {
 			return c.SendStatus(http.StatusRequestEntityTooLarge)
 		}
